@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <math.h>
 #include <SDL2/SDL.h>
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
 
 #define WIDTH	800
 #define HEIGHT	800
@@ -18,45 +21,6 @@ typedef struct vec2f {
 typedef struct vec3f {
 	float x, y, z;
 } vec3f;
-
-/*typedef struct Indice_From{
-	uint8_t *items;
-	size_t count;
-	size_t capacity;
-} Indice_From;
-
-typedef struct Indice_To{
-	uint8_t *items;
-	size_t count;
-	size_t capacity;
-} Indice_To;*/
-
-#define da_append(da, item)\
-	do\
-	{\
-		if(da.count >= da.capacity){\
-			if(da.capacity == 0) da.capacity = 256;\
-			else{\
-				da.capacity *= 2;\
-				da.items = realloc(da.items, da.capacity*sizeof(*da.items));\
-			}\
-		da.items[da.count++] = item;\
-	}\
-	while(0);
-
-#define da_append_pointer(da, item)\
-	do\
-	{\
-		if(da->count >= da->capacity){\
-			if(da->capacity == 0) da->capacity = 256;\
-			else{\
-				da->capacity *= 2;\
-				da->items = realloc(da->items, da->capacity*sizeof(*da->items));\
-			}\
-		}\
-		da->items[da->count++] = item;\
-	}\
-	while(0);
 
 #define MIN(in1, in2) ((in1 < in2) ? in1 : in2)
 
@@ -101,6 +65,7 @@ const uint8_t indices[2][12] = {
 	{1, 2, 3, 0, 5, 6, 7, 4, 4, 5, 6, 7}
 };
 
+void reload_color(uint8_t *bg, uint8_t *fg, const char *config_path);
 void clear(SDL_Renderer *canva);
 void point(SDL_Renderer *canva, vec2f p);
 vec2f convert(vec2f vec);
@@ -110,15 +75,9 @@ vec3f transform_z(vec3f vec, float dz);
 vec3f rotate_rad(vec3f vec, float angle);
 vec3f rotate_deg(vec3f vec, float angle);
 void line(SDL_Renderer *canva, vec2f p1, vec2f p2);
-//void indice_init(Indice_From *iF, Indice_To *iT);
 void key_handle(SDL_Event);
 
 int main(void){
-	//Indice_From iFrom = {0};
-	//Indice_To iTo = {0};
-
-	//indice_init(&iFrom, &iTo);
-
 	int8_t return_val = 0;
 	if(SDL_Init(SDL_INIT_VIDEO) != 0) defer(-1);
 	
@@ -132,6 +91,10 @@ int main(void){
 	SDL_GetRendererOutputSize(canva, &win_width, &win_height);
 	printf("Current drawable size (in pixels): %d x %d\n", win_width, win_height);
 	
+#ifdef PRELOAD_CONFIG
+	reload_color(BGColor, FGColor, "config.lua");
+#endif
+
 	SDL_Event event;
 	while(state >= 0){
 		if(event.type == SDL_QUIT) state = -1;
@@ -148,6 +111,15 @@ int main(void){
 					printf("Window resized!\n");
 					SDL_GetRendererOutputSize(canva, &win_width, &win_height);
 					printf("Current drawable size (in pixels): %d x %d\n", win_width, win_height);
+					break;
+				case SDLK_t:
+					reload_color(BGColor, FGColor, "config.lua");
+					printf("Changed color! Current colors:\n");
+					printf("\tBackground: %d, %d, %d, %d\n", BGColor[0], BGColor[1], BGColor[2], BGColor[3]);
+					printf("\tForeground: %d, %d, %d, %d\n", FGColor[0], FGColor[1], FGColor[2], FGColor[3]);
+					break;
+				case SDLK_c:
+					system("clear");
 					break;
 				default:
 					break;
@@ -182,6 +154,32 @@ exit:
 	if(win) SDL_DestroyWindow(win);
 	SDL_Quit();
 	return return_val;
+}
+
+void reload_color(uint8_t *bg, uint8_t *fg, const char *config_path){
+    lua_State *lua = luaL_newstate();
+    luaL_openlibs(lua);
+    luaL_dofile(lua, config_path);
+
+    lua_getglobal(lua, "bg_r");
+    lua_getglobal(lua, "bg_g");
+    lua_getglobal(lua, "bg_b");
+    lua_getglobal(lua, "bg_a");
+    
+    lua_getglobal(lua, "fg_r");
+    lua_getglobal(lua, "fg_g");
+    lua_getglobal(lua, "fg_b");
+    lua_getglobal(lua, "fg_a");
+
+    for(uint8_t i = 0; i < 4; i++){
+	bg[i] = lua_tonumber(lua, (i + 1));
+	fg[i] = lua_tonumber(lua, (5 + i));
+
+	//printf("[DEBUG]: bg[%d] = %d, fg[%d] = %d\n", i, bg[i], i, fg[i]);
+    }
+
+    lua_settop(lua, 0);
+    lua_close(lua);
 }
 
 void clear(SDL_Renderer *canva){
@@ -256,23 +254,3 @@ void line(SDL_Renderer *canva, vec2f p1, vec2f p2){
 	if(SDL_RenderDrawLineF(canva, p1.x, p1.y, p2.x, p2.y) == -1)\
 		printf("Cannot drawline from (%f, %f) to (%f, %f)!\n", p1.x, p1.y, p2.x, p2.y);
 }
-
-/*void indice_init(Indice_From *iF, Indice_To *iT){
-	da_append_pointer(iF, 0);
-	da_append_pointer(iF, 1);
-	da_append_pointer(iF, 2);
-	da_append_pointer(iF, 3);
-	da_append_pointer(iF, 4);
-	da_append_pointer(iF, 5);
-	da_append_pointer(iF, 6);
-	da_append_pointer(iF, 7);
-	
-	da_append_pointer(iT, 1);	
-	da_append_pointer(iT, 2);	
-	da_append_pointer(iT, 3);	
-	da_append_pointer(iT, 0);	
-	da_append_pointer(iT, 5);	
-	da_append_pointer(iT, 6);	
-	da_append_pointer(iT, 7);	
-	da_append_pointer(iT, 4);	
-}*/
