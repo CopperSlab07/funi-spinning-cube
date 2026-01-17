@@ -1,8 +1,11 @@
-SRC = main.c
+SRC = cube.pas
+BIN = cube
 
-CFLAGS = -std=c11 -Wall -Wextra -pedantic -DPRELOAD_CONFIG
-SDL2-CFLAGS = -I/usr/include/SDL2 -D_GNU_SOURCE=1 -D_REENTRANT
-LINKERS = -lm -lSDL2 -llua
+SDL_SRC = sdl.pas
+SDL_PATH = -Fi~/tools/SDL2-for-Pascal-2.3-stable/units -Fu~/tools/SDL2-for-Pascal-2.3-stable/units
+SDL_BIN = test
 
-build: $(SRC)
-	cc $(CFLAGS) $(SDL2-CFLAGS) -o run $(SRC) $(LINKERS)
+cube: $(SRC)
+	fpc $(SDL_PATH) -o$(BIN) $(SRC)
+clean:
+	rm ./*.o
