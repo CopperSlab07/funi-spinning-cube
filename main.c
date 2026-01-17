@@ -14,6 +14,11 @@
 #define defer(val) do {return_val = val;  printf("Errored! SDL_Error: %s\n", SDL_GetError()); goto exit;} while(0)
 //BGColor = 0xFF50FF50, FGColor = 0xFF101010; : RGBA
 //angle: in rad for now
+enum PointMode {
+    NO_FILL,
+    FILL
+};
+
 typedef struct vec2f {
 	float x, y;
 } vec2f;
@@ -67,7 +72,7 @@ const uint8_t indices[2][12] = {
 
 void reload_color(uint8_t *bg, uint8_t *fg, const char *config_path);
 void clear(SDL_Renderer *canva);
-void point(SDL_Renderer *canva, vec2f p);
+void point(SDL_Renderer *canva, vec2f p, uint8_t mode);
 vec2f convert(vec2f vec);
 vec2f convert_OGCenter(vec2f vec, int og_width, int og_height);
 vec2f project(vec3f vec);
@@ -128,12 +133,6 @@ int main(void){
 skip:
 		angleXZ += pi * delta_time;
 		clear(canva);
-		//point(canva, convert(project(rotate_rad(test, angle))));
-		
-		/*for(int8_t i = 0; i < 8; i++){
-			point(canva, convert(project(transform_z(rotate_rad(vertices[i], angle), dz))));
-		}*/
-
 		for(uint8_t i = 0; i < 12; i++){
 			vec3f a = vertices[indices[0][i]];
 			vec3f b = vertices[indices[1][i]];
@@ -144,8 +143,6 @@ skip:
 		}
 		
 		SDL_RenderPresent(canva);
-		//printf("Skiped %d frames rn...\n", frame);
-		//frame++;
 		SDL_Delay(20);
 	}
 	
@@ -174,8 +171,6 @@ void reload_color(uint8_t *bg, uint8_t *fg, const char *config_path){
     for(uint8_t i = 0; i < 4; i++){
 	bg[i] = lua_tonumber(lua, (i + 1));
 	fg[i] = lua_tonumber(lua, (5 + i));
-
-	//printf("[DEBUG]: bg[%d] = %d, fg[%d] = %d\n", i, bg[i], i, fg[i]);
     }
 
     lua_settop(lua, 0);
@@ -187,7 +182,7 @@ void clear(SDL_Renderer *canva){
 	SDL_RenderClear(canva);
 }
 
-void point(SDL_Renderer *canva, vec2f p){
+void point(SDL_Renderer *canva, vec2f p, uint8_t mode){
 	SDL_SetRenderDrawColor(canva, FGColor[0],  FGColor[1], FGColor[2], FGColor[3]);
 	SDL_FRect tmp_rect = {
 		.x = p.x - p_size/2,
@@ -195,11 +190,19 @@ void point(SDL_Renderer *canva, vec2f p){
 		.w = p_size,
 		.h = p_size
 	};
-	if(SDL_RenderDrawRectF(canva, &tmp_rect) == -1/* || SDL_RenderFillRectF(canva, &tmp_rect) == -1*/){
-		printf("Cannot draw point at (%f, %f)!\n", p.x, p.y);
-	}
-	if(SDL_RenderFillRectF(canva, &tmp_rect) == -1){
-		printf("Cannot draw point at (%f, %f)!\n", p.x, p.y);
+	switch(mode){
+	    case NO_FILL:
+		if(SDL_RenderDrawRectF(canva, &tmp_rect) == -1){
+		    printf("Cannot draw point at (%f, %f)!\n", p.x, p.y);
+		}
+		break;
+	    case FILL:
+		if(SDL_RenderFillRectF(canva, &tmp_rect) == -1){
+		    printf("Cannot draw point at (%f, %f)!\n", p.x, p.y);
+		}
+		break;
+	    default:
+		break;
 	}
 }
 
