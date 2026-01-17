@@ -28,7 +28,7 @@ const
     win_y = 100;
     win_width = 800;
     win_height = 800;
-    win_flags = SDL_WINDOW_SHOWN {+ SDL_WINDOW_RESIZABLE};
+    win_flags = SDL_WINDOW_SHOWN;
     renderer_flags = SDL_RENDERER_ACCELERATED + SDL_RENDERER_PRESENTVSYNC;
 
     bg_r = 16;
@@ -53,7 +53,6 @@ var
     renderer : PSDL_Renderer;
     event : TSDL_Event;
     state : ShortInt;
-    {small_square : TSDL_Rect = (x:100; y:100; w:100; h:100);}
     dz : Real = 1.0;
     TestCube : TCube = (
 	(0.25, 0.25, 0.25),
@@ -194,19 +193,12 @@ begin
 	if SDL_PollEvent(@event) = 0 then goto skip;
 	case event.key.keysym.sym of
 	    SDLK_ESCAPE : state := -1;
-	    {SDLK_a	: small_square.x-=20;
-	    SDLK_d	: small_square.x+=20;
-	    SDLK_w	: small_square.y-=20;
-	    SDLK_s	: small_square.y+=20;}
-	    {else WriteLn('Pressed an unconfigured button: ', event.key.keysym.sym);}
 	end;
 skip:
 	angle += delta_time;
 	if angle > (2 * pi_ap) then angle -= (2 * pi_ap);
 	SDL_SetRenderDrawColor(renderer, bg_r, bg_g, bg_b, bg_a);
 	SDL_RenderClear(renderer);
-	{SDL_SetRenderDrawColor(renderer, fg_r, fg_g, fg_b, fg_a);}
-	{DrawPoint(convert(project(transform_z(rotate(TestPoint, angle), dz))), 10);}
 	{cube_points(TestCube);}
 	cube_lines(TestCube, TestIndice);
 	SDL_RenderPresent(renderer);
